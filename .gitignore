@@ -41,4 +41,10 @@ Thumbs.db
 # Kaggle
 .kaggle/
 
+# Temporary dataset extraction
+pomegranate_orchard_dataset.rar
+pomegranate_orchard_dataset/
+results/orchard_test/
+test_orchard_images.py
+
 PROJECT_BRIEF.md

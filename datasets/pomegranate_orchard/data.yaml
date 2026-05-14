@@ -1,0 +1,13 @@
+path: ../datasets/pomegranate_orchard  # dataset root (relative to training dir)
+train: images/train
+val: images/val
+test:  # optional
+
+nc: 6
+names:
+  0: crown_damaged
+  1: crown_good
+  2: surface_damaged
+  3: surface_good
+  4: surface_burnt
+  5: surface_cracked
