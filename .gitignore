@@ -4,10 +4,7 @@ data/processed/
 
 # Model weights
 weights/
-pomegranate_models/
-*.pt
-*.pth
-*.onnx
+# Note: pomegranate_models/ is tracked — contains trained model weights
 
 # LaTeX temp files
 *.aux
