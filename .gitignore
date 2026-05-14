@@ -1,0 +1,47 @@
+# Data
+data/raw/
+data/processed/
+
+# Model weights
+weights/
+pomegranate_models/
+*.pt
+*.pth
+*.onnx
+
+# LaTeX temp files
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+missfont.log
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Results
+results/figures/
+results/metrics/
+
+# Environment
+.env
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Kaggle
+.kaggle/
+
+PROJECT_BRIEF.md

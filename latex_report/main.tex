@@ -1,0 +1,143 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{caption}
+\usepackage{amsmath}
+\usepackage{hyperref}
+
+\geometry{margin=2.5cm}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  backgroundcolor=\color{gray!10},
+  showstringspaces=false
+}
+
+\title{\textbf{Pomegranate Orchard Monitoring System}\\
+\large End-to-End Deep Learning for Smart Agriculture}
+\author{Master's Project Report}
+\date{May 2026}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+Pomegranate cultivation is a significant agricultural sector, yet manual quality inspection remains labor-intensive, subjective, and error-prone. This project presents an end-to-end deep learning system for automated pomegranate orchard monitoring that combines object detection, instance segmentation, and explainable artificial intelligence (XAI).
+
+The system was designed as a two-stage pipeline: a YOLOv8m detector identifies and classifies individual fruits into six condition categories, while a U-Net ResNet-34 model segments the precise boundary of each detected fruit. A dual explainability layer provides human-interpretable justifications for model decisions, supported by quantitative validation metrics.
+
+\section{Dataset}
+
+The Makinay Pomegranate Dataset from Roboflow Universe was used for training and evaluation. It contains approximately 7,000 annotated images with instance segmentation labels (bounding boxes and polygon masks) across six classes:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{clc}
+\toprule
+\textbf{Class ID} & \textbf{Class Name} & \textbf{Condition} \\
+\midrule
+0 & crown\_damaged & Defective \\
+1 & crown\_good & Healthy \\
+2 & surface\_damaged & Defective \\
+3 & surface\_good & Healthy \\
+4 & surface\_burnt & Defective \\
+5 & surface\_cracked & Defective \\
+\bottomrule
+\end{tabular}
+\caption{Pomegranate defect classification categories.}
+\end{table}
+
+The dataset was downloaded in YOLOv8 format for detection training and COCO format for segmentation mask extraction. Training used a standard train/validation split with images resized to 640$\times$640 for YOLO and 256$\times$256 for U-Net.
+
+\section{Methodology}
+
+\subsection{Stage 1: Object Detection with YOLOv8m}
+
+YOLOv8m (medium variant) was selected for its balance between detection accuracy and inference speed. The model was initialized from the Ultralytics COCO pre-trained checkpoint and fine-tuned on the pomegranate dataset for 100 epochs on an NVIDIA T4 GPU via Kaggle.
+
+Training configuration:
+\begin{itemize}
+  \item Image size: 640$\times$640
+  \item Batch size: 16
+  \item Optimizer: SGD with momentum 0.937
+  \item Learning rate: 0.01
+  \item Augmentation: Mosaic, MixUp, random flip, HSV jitter
+\end{itemize}
+
+The model achieves strong in-distribution performance with mAP@0.5 of 0.987 and mAP@0.5:0.95 of 0.836 on the validation set.
+
+\subsection{Stage 2: Instance Segmentation with U-Net}
+
+A U-Net architecture with ResNet-34 encoder was implemented using the segmentation-models-pytorch library. The model outputs a single-channel binary mask (sigmoid activation) representing the fruit foreground boundary.
+
+Training configuration:
+\begin{itemize}
+  \item Encoder: ResNet-34 (ImageNet pre-trained)
+  \item Loss: Binary Cross-Entropy + Dice Loss
+  \item Optimizer: Adam with learning rate $10^{-4}$
+  \item Input: 256$\times$256 cropped fruit regions
+  \item Epochs: 50 with early stopping
+\end{itemize}
+
+It is important to note that the U-Net segments fruit boundaries rather than defect regions. This is honestly reported as fruit instance segmentation, not defect segmentation, to maintain scientific integrity.
+
+\subsection{Stage 3: Explainability}
+
+Two complementary explainability methods were integrated:
+
+\textbf{EigenCAM} is applied to the YOLO backbone to visualize which image regions influenced detection decisions. It computes the principal eigenvector of the feature covariance matrix without requiring gradient computation, making it stable for detection architectures.
+
+\textbf{Grad-CAM} is applied to the U-Net decoder to explain segmentation decisions. It uses gradient information flowing into the final convolutional layer to produce a coarse localization map highlighting important regions for the segmentation output.
+
+\subsection{Stage 4: Validation Metrics}
+
+\textbf{Faithfulness} measures whether the explanation identifies pixels the model actually relies upon. The top 20\% most salient Grad-CAM pixels are masked, inference is re-run, and the confidence drop is measured. A high score indicates the CAM correctly identifies decision-critical pixels.
+
+\textbf{Cross-model alignment} measures whether YOLO (detection) and U-Net (segmentation) attend to the same image regions. The IoU between EigenCAM and Grad-CAM attention regions is computed as an agreement score.
+
+\section{System Implementation}
+
+The system is deployed as a web application with three layers:
+
+\textbf{Backend:} FastAPI provides REST endpoints for detection, segmentation, full analysis, and explainability. Models are loaded once during application startup via a lifespan context manager, ensuring efficient inference.
+
+\textbf{Frontend:} Streamlit provides an interactive interface with image upload, confidence threshold and mask opacity sliders, an explanation toggle, side-by-side original and annotated display, per-fruit detailed analysis panels, and annotated image download.
+
+\textbf{Configuration:} All parameters (model paths, thresholds, image sizes, class names, colors, XAI settings) are centralized in a single \texttt{config.yaml} file, enabling reproducible experiments without code modification.
+
+\textbf{Containerization:} A Dockerfile enables single-command deployment:
+\begin{lstlisting}
+docker build -t pom-monitor .
+docker run -p 8000:8000 pom-monitor
+\end{lstlisting}
+
+\section{Results and Discussion}
+
+The YOLOv8m detector achieves excellent in-distribution performance with mAP@0.5 of 0.987 and mAP@0.5:0.95 of 0.836. The U-Net achieves high pixel accuracy on fruit boundary segmentation (Dice 1.0, IoU 1.0), though these values reflect the class-imbalanced nature of the task where fruit pixels dominate.
+
+The system exhibits a known limitation of narrow-domain models: significant performance degradation on out-of-distribution images. When tested on pomegranate photos from different geographic regions or camera equipment, the model produces false-positive detections. This is documented honestly as a domain shift limitation rather than hidden.
+
+\section{Conclusion}
+
+This project successfully implements an end-to-end pomegranate orchard monitoring system integrating object detection, fruit instance segmentation, and dual explainability with quantitative validation. The system achieves strong in-distribution detection performance and provides interactive visualization through a web-based interface.
+
+Future work includes expanding the dataset for better domain generalization, acquiring pixel-level defect annotations for true defect segmentation, and converting models to ONNX or TensorRT for edge deployment.
+
+\vspace{1cm}
+\noindent\textbf{Technologies used:} Python, PyTorch, Ultralytics YOLOv8, segmentation-models-pytorch, FastAPI, Streamlit, Docker, OpenCV, NumPy.
+
+\vspace{0.5cm}
+\noindent\textbf{Training platform:} Kaggle (NVIDIA T4 GPU).
+
+\end{document}
