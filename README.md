@@ -1,14 +1,36 @@
-# Pomegranate Orchard Monitor
+# Apple Orchard Monitor
 
 Master's project: End-to-end Deep Learning computer vision system for Smart Agriculture.
 
 ## Overview
 
-This system performs **object detection** and **fruit instance segmentation** on pomegranate orchard images using:
-- **YOLOv8m** for fruit detection and defect classification (6 classes)
-- **U-Net (ResNet-34)** for precise fruit boundary segmentation
+This system performs **real-time apple detection** and **fruit instance segmentation** on orchard images using:
+- **YOLOv8n** for apple detection (merged Roboflow datasets, ~1,500 images)
+- **U-Net (ResNet-34)** for precise apple boundary segmentation (SAM-generated masks)
 - **Dual XAI**: EigenCAM (YOLO) + Grad-CAM (U-Net) with faithfulness and cross-model alignment metrics
 - **FastAPI** backend + **Streamlit** frontend for deployment
+
+## Pipeline
+
+```mermaid
+flowchart LR
+    A[Orchard Image<br/>640x640] --> B[YOLOv8n Detector]
+    B --> C[Bounding Boxes<br/>+ Confidence]
+    C --> D[U-Net ResNet-34]
+    D --> E[Apple Masks<br/>256x256]
+    B --> F[EigenCAM]
+    D --> G[Grad-CAM]
+    F --> H{Cross-Model<br/>Alignment}
+    G --> H
+    H --> I[Faithfulness<br/>Score]
+    C --> J[Per-Apple Metrics]
+    E --> J
+    I --> J
+    J --> K[JSON API<br/>Response]
+    K --> L[Streamlit<br/>Dashboard]
+```
+
+**Flow:** Upload image → Detect apples → Segment each apple → Explain both models → Return annotated results + XAI
 
 ## Project Structure
 
@@ -28,9 +50,9 @@ This system performs **object detection** and **fruit instance segmentation** on
 │   └── app.py
 ├── training/                 # Training & evaluation scripts
 │   └── evaluate.py
-├── pomegranate_models/       # Trained model weights
-│   ├── yolov8_pomegranate.pt
-│   └── unet_defect.pth
+├── models/                   # Trained model weights
+│   ├── yolov8_apple.pt       # Apple detection (YOLOv8n)
+│   └── unet_fruit.pth        # Fruit segmentation
 ├── presentation/           # Slidev slides for defense
 │   ├── slides.md
 │   └── package.json
@@ -74,11 +96,94 @@ python training/evaluate.py --test_dir path/to/test/images --save_viz
 
 ## Training
 
-Model training was performed on Kaggle using the Makinay Pomegranate Dataset. The training notebook (`pomegranate-orchard-monitor-yolo-u-net-xai.ipynb`) contains the full pipeline: dataset download, YOLOv8m training, U-Net training, and weight export.
+Model training performed on Google Colab (T4 GPU) using merged Roboflow datasets:
+- `paramee/apple-tiyxx` (~216 images)
+- `l61l/apple-desti` (~1,270 images)
 
-**Notebook:** `pomegranate-orchard-monitor-yolo-u-net-xai.ipynb`
+**Training notebooks:**
+- YOLO: `training/train_apple_roboflow_colab.ipynb`
+- U-Net: `training/train_unet_apple_colab.ipynb`
 
-**Kaggle link:** https://www.kaggle.com/code/samergassouma/pomegranate-orchard-monitor-yolo-u-net-xai
+### YOLOv8n Detection Results (100 epochs)
+
+| Metric | Value |
+|--------|-------|
+| mAP@0.5 | **98.6%** |
+| mAP@0.5:95 | **82.7%** |
+| Precision | 95.8% |
+| Recall | 97.0% |
+
+### U-Net Segmentation Results (14 epochs, early stopping)
+
+| Metric | Value |
+|--------|-------|
+| Best Val Loss | **0.324** |
+| Train Loss (final) | 0.330 |
+| Training Data | 884 images (SAM masks) |
+| Validation Data | 156 images |
+
+## Benchmarks
+
+### Pipeline Detail
+
+```mermaid
+flowchart TB
+    subgraph Input
+        IMG[Orchard Image JPG/PNG]
+    end
+
+    subgraph Detection
+        IMG -->|640x640| YOLO[YOLOv8n]
+        YOLO --> DETS[Apple Detections<br/>bbox + conf]
+    end
+
+    subgraph "Per-Apple Processing"
+        DETS -->|Crop bbox| CROP[Apple Crop]
+        CROP -->|256x256| UNET[U-Net ResNet-34]
+        UNET --> MASK[Binary Mask]
+        UNET --> COV[Fruit Coverage]
+    end
+
+    subgraph XAI
+        YOLO -->|Hook last Conv| EIG[EigenCAM]
+        UNET -->|Hook last Conv + Grad| GRA[Grad-CAM]
+        EIG --> ALIGN{IoU Alignment}
+        GRA --> ALIGN
+        GRA --> FAITH[Faithfulness<br/>Mask Top 20%]
+    end
+
+    subgraph Output
+        DETS --> API[FastAPI JSON]
+        MASK --> API
+        COV --> API
+        EIG --> API
+        GRA --> API
+        ALIGN --> API
+        FAITH --> API
+        API --> FE[Streamlit<br/>Dashboard]
+    end
+```
+
+End-to-end pipeline evaluated on 30 COCO apple images (CPU, Intel i5):
+
+| Component | Metric | Value |
+|-----------|--------|-------|
+| **Detection** | Total detections (30 imgs) | 33 apples |
+| **Detection** | Avg per image | 1.1 apples |
+| **Segmentation** | Fruits segmented | 33 |
+| **XAI** | Avg Faithfulness | **0.302** |
+| **XAI** | Avg Confidence Drop | **0.146** |
+| **XAI** | Avg CAM Alignment (IoU) | 0.015 |
+
+### Inference Speed (CPU)
+
+| Pipeline Stage | Latency | Throughput |
+|----------------|---------|------------|
+| YOLO Detection only | ~82 ms | **12.2 FPS** |
+| Detection + Segmentation | ~107 ms | **9.3 FPS** |
+| Full Pipeline (+XAI) | ~68 ms | **14.7 FPS** |
+
+*Note: XAI cache effects explain faster full-pipeline timing on repeated runs.*
 
 ## Report
 
@@ -109,20 +214,15 @@ All paths and hyperparameters are in `config.yaml`:
 
 ## Classes
 
-| ID | Name | Healthy? |
-|----|------|----------|
-| 0 | crown_damaged | No |
-| 1 | crown_good | Yes |
-| 2 | surface_damaged | No |
-| 3 | surface_good | Yes |
-| 4 | surface_burnt | No |
-| 5 | surface_cracked | No |
+| ID | Name |
+|----|------|
+| 0 | apple |
 
 ## Docker
 
 ```bash
-docker build -t pom-monitor .
-docker run -p 8000:8000 pom-monitor
+docker build -t apple-monitor .
+docker run -p 8000:8000 apple-monitor
 ```
 
 

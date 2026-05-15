@@ -1,5 +1,5 @@
 """
-Streamlit Frontend for Pomegranate Orchard Monitor.
+Streamlit Frontend for Orchard Fruit Monitor.
 Interactive UI: upload, visualize detections, toggle explanations, inspect per-fruit XAI.
 """
 
@@ -31,7 +31,7 @@ st.set_page_config(
     layout="wide",
 )
 
-st.title("Pomegranate Orchard Monitor")
+st.title("Orchard Fruit Monitor")
 st.caption("Dual-Explainable Object Detection & Fruit Instance Segmentation")
 
 # ─── Sidebar Controls ─────────────────────────────────

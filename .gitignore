@@ -41,10 +41,14 @@ Thumbs.db
 # Kaggle
 .kaggle/
 
+# Datasets (large binary files)
+datasets/
+
+# Model weights (track specific ones in models/)
+# *.pt and *.pth are tracked for this project
+
 # Temporary dataset extraction
 pomegranate_orchard_dataset.rar
 pomegranate_orchard_dataset/
 results/orchard_test/
 test_orchard_images.py
-
-PROJECT_BRIEF.md

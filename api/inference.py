@@ -44,7 +44,7 @@ NORMALIZE_STD = torch.tensor(CONFIG["inference"]["normalize_std"]).view(1, 3, 1,
 
 CLASS_NAMES = CONFIG["classes"]["names"]
 CLASS_COLORS = {int(k): tuple(v) for k, v in CONFIG["classes"]["colors"].items()}
-HEALTHY_CLASSES = set(CONFIG["classes"]["healthy"])
+HEALTHY_CLASSES = set(CONFIG["classes"].get("healthy", []))
 FAITH_TOP_PCT = CONFIG["xai"]["faithfulness_top_percentile"]
 CAM_THRESHOLD = CONFIG["xai"]["cam_threshold"]
 

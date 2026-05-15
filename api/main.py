@@ -1,5 +1,5 @@
 """
-FastAPI Backend for Pomegranate Orchard Monitoring System.
+FastAPI Backend for Apple Orchard Monitoring System.
 Endpoints: /health, /detect, /segment, /analyze, /explain
 """
 
@@ -27,7 +27,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Pomegranate Orchard Monitor",
+    title="Apple Orchard Monitor",
     description="Dual-Explainable Object Detection & Fruit Instance Segmentation",
     version="1.0.0",
     lifespan=lifespan,

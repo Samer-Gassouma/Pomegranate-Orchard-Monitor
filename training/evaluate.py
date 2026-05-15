@@ -1,5 +1,5 @@
 """
-Evaluation script for the Pomegranate Orchard Monitor.
+Evaluation script for the Apple Orchard Monitor.
 Runs detection + fruit segmentation + XAI on test images and computes metrics.
 Usage:
     python training/evaluate.py --test_dir path/to/test/images --output_dir results/metrics
@@ -111,14 +111,14 @@ def evaluate_image(yolo, unet, img_path, device, config):
     # Detection
     results = yolo(img_rgb, conf=0.25, device=device)[0]
     if results.boxes is None or len(results.boxes) == 0:
-        return {"detections": [], "segments": [], "xai": []}
+        return {"detections": [], "segments": [], "xai": [], "masks_pred": []}
 
     boxes = results.boxes.xyxy.cpu().numpy()
     classes = results.boxes.cls.cpu().numpy().astype(int)
     confs = results.boxes.conf.cpu().numpy()
 
     class_names = config["classes"]["names"]
-    healthy_classes = set(config["classes"]["healthy"])
+    healthy_classes = set(config["classes"].get("healthy", []))
 
     detections = []
     for i in range(len(boxes)):
@@ -196,7 +196,7 @@ def evaluate_image(yolo, unet, img_path, device, config):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Evaluate pomegranate detection pipeline")
+    parser = argparse.ArgumentParser(description="Evaluate apple detection pipeline")
     parser.add_argument("--test_dir", type=str, default=None, help="Directory with test images")
     parser.add_argument("--output_dir", type=str, default="results/metrics", help="Output directory for metrics")
     parser.add_argument("--max_images", type=int, default=20, help="Max images to evaluate")
@@ -280,7 +280,7 @@ def main():
     print("\n" + "=" * 60)
     print("EVALUATION RESULTS")
     print("=" * 60)
-    print(f"\nDetection (YOLOv8m):")
+    print(f"\nDetection (YOLOv8n):")
     for k, v in det_metrics.items():
         if isinstance(v, float):
             print(f"   {k}: {v:.4f}")

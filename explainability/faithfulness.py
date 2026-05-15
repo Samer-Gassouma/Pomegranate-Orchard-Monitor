@@ -80,6 +80,7 @@ def compute_faithfulness(
     confidence_drop = baseline_conf - masked_conf
 
     try:
+        h_m, w_m = heatmap_resized.shape
         return {
             "baseline_confidence": round(baseline_conf, 4),
             "masked_confidence": round(masked_conf, 4),
@@ -88,7 +89,7 @@ def compute_faithfulness(
                 min(confidence_drop / (baseline_conf + 1e-7), 1.0), 4
             ),
             "n_pixels_masked": int(mask.sum()),
-            "mask_fraction": round(mask.sum() / (h * w), 4),
+            "mask_fraction": round(mask.sum() / (h_m * w_m), 4),
         }
     except Exception:
         return {
