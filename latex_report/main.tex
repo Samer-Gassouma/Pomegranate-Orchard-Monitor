@@ -24,7 +24,8 @@
 
 \title{\textbf{Apple Orchard Monitoring System}\\
 \large End-to-End Deep Learning for Smart Agriculture}
-\author{Master's Project Report}
+\author{Master's Project Report\\
+\small \url{https://github.com/Samer-Gassouma/Apple-Orchard-Monitor}}
 \date{May 2026}
 
 \begin{document}
@@ -112,6 +113,25 @@ The system is deployed as a web application with three layers:
 docker build -t apple-monitor .
 docker run -p 8000:8000 apple-monitor
 \end{lstlisting}
+
+\section{Interface Screenshots}
+
+The Streamlit frontend demonstrates the complete pipeline on a real orchard image. Screenshots are available in the project repository at \url{https://github.com/Samer-Gassouma/Apple-Orchard-Monitor} under \texttt{assets/screenshots/}.
+
+\textbf{Step 1 -- Upload \& Detect:} The user uploads an orchard image via the Streamlit interface. YOLOv8n detects 6 apples and draws bounding boxes with confidence scores. The main dashboard shows the original image, annotated detections, and summary statistics (Total Fruits, Healthy, Defective counts).
+
+\textbf{Step 2 -- Per-Apple Segmentation \& Explainability:} Clicking any detected apple reveals a detailed panel with:
+\begin{itemize}
+  \item Detection metadata (class, confidence, bbox coordinates)
+  \item U-Net ResNet-34 segmentation mask and fruit coverage (e.g., 0.784)
+  \item YOLO EigenCAM full-image attention map
+  \item U-Net Grad-CAM per-crop boundary attention map
+  \item Faithfulness score (0.11--0.27) and CAM alignment (IoU)
+\end{itemize}
+
+\textbf{Step 3 -- Session Summary:} The dashboard reports total fruits detected (6) and average fruit coverage (0.796) across the entire image.
+
+All screenshots and source code are available at: \url{https://github.com/Samer-Gassouma/Apple-Orchard-Monitor}
 
 \section{Results and Discussion}
 
